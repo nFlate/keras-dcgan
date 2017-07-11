@@ -8,10 +8,39 @@ from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers.core import Flatten
 from keras.optimizers import SGD
 from keras.datasets import mnist
-import numpy as np
-from PIL import Image
 import argparse
 import math
+import os
+from glob import glob 
+from PIL import Image
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+def get_flower():
+    base_dir = "/Users/venuktangirala/cyngn/flowers/images/flower_photos/*"
+    base_dir = "/datasets/flowers/images/flower_photos/*"
+    base_dir = "/home/nflate-cnn/flowers/raw-data/train/*"
+    X = None
+    y = list()
+    for label_dir in glob(base_dir):
+        label = label_dir.split("/")[-1]
+
+        for img in glob(label_dir + "/*.jpg"):
+            try:
+                X = np.vstack([X,
+                               np.array(Image.open(img).resize((300, 300), Image.ADAPTIVE)).reshape(3, 300, 300)
+                               ])
+                y.append(label)
+
+            except Exception as e:
+                print("failed ", e)
+                X = np.array(Image.open(img).resize((300, 300), Image.ADAPTIVE)).reshape(3, 300, 300)
+                pass
+
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    return (X_train, np.array(y_train)), (X_test, np.array(y_test))
 
 
 def generator_model():
@@ -74,8 +103,8 @@ def combine_images(generated_images):
 
 
 def train(BATCH_SIZE):
-    (X_train, y_train), (X_test, y_test) = mnist.load_data()
-    X_train = (X_train.astype(np.float32) - 127.5)/127.5
+    (X_train, y_train), (X_test, y_test) = get_flower()
+    X_train = (X_train - 127.5)/127.5
     X_train = X_train.reshape((X_train.shape[0], 1) + X_train.shape[1:])
     discriminator = discriminator_model()
     generator = generator_model()
